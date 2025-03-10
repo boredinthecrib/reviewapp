@@ -30,7 +30,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/movies/:id/rate", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const movieId = parseInt(req.params.id);
     const parsed = insertRatingSchema.safeParse({
       ...req.body,
@@ -48,7 +48,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/movies/:id/review", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
-    
+
     const movieId = parseInt(req.params.id);
     const parsed = insertReviewSchema.safeParse({
       ...req.body,
@@ -62,6 +62,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     const review = await storage.createReview(parsed.data);
     res.status(201).json(review);
+  });
+
+  app.get("/api/users/:id", async (req, res) => {
+    const user = await storage.getUser(parseInt(req.params.id));
+    if (!user) return res.sendStatus(404);
+    res.json(user);
   });
 
   app.get("/api/users/:id/reviews", async (req, res) => {

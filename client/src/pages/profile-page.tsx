@@ -19,29 +19,30 @@ export default function ProfilePage() {
     queryKey: [`/api/users/${userId}/reviews`],
   });
 
-  // Fetch movies for all reviews
-  const reviewMovieIds = reviews?.map(review => review.movieId) ?? [];
-  const movieQueries = reviewMovieIds.map(movieId => ({
-    queryKey: [`/api/movies/${movieId}`],
-  }));
+  // Get unique movie IDs from reviews
+  const movieIds = [...new Set(reviews?.map(review => review.movieId) ?? [])];
 
+  // Fetch movies in parallel with a single query
   const { data: movies = [] } = useQuery<Movie[]>({
-    queryKey: ['movies', reviewMovieIds],
-    enabled: reviewMovieIds.length > 0,
+    queryKey: ['/api/movies/batch', movieIds],
+    enabled: movieIds.length > 0,
     queryFn: async () => {
       const responses = await Promise.all(
-        reviewMovieIds.map(id => 
-          fetch(`/api/movies/${id}`).then(res => res.json())
+        movieIds.map(id => 
+          fetch(`/api/movies/${id}`, {
+            credentials: 'include'
+          }).then(res => res.json())
         )
       );
-      return responses;
-    },
+      return responses.filter(Boolean); // Filter out any failed requests
+    }
   });
 
-  // Create a map of movieId to movie for easy lookup
-  const movieMap = Object.fromEntries(
-    movies.map(movie => [movie.id, movie])
-  );
+  // Create a map for O(1) movie lookups
+  const movieMap: Record<number, Movie> = {};
+  movies.forEach(movie => {
+    if (movie) movieMap[movie.id] = movie;
+  });
 
   if (!user) {
     return (
@@ -75,9 +76,11 @@ export default function ProfilePage() {
           <div className="flex justify-center">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
+        ) : !reviews?.length ? (
+          <p className="text-center text-muted-foreground">No reviews yet.</p>
         ) : (
           <div className="space-y-4">
-            {reviews?.map((review) => (
+            {reviews.map((review) => (
               <ReviewCard 
                 key={review.id} 
                 review={review}

@@ -12,20 +12,20 @@ export default function NavBar() {
     <nav className="border-b">
       <div className="container mx-auto px-4 flex items-center justify-between h-16">
         <Link href="/">
-          <a className="text-xl font-bold">MovieReviews</a>
+          <Button variant="link" className="text-xl font-bold p-0">MovieReviews</Button>
         </Link>
-        
+
         <div className="flex items-center gap-4">
           <Link href={`/profile/${user.id}`}>
-            <a className="flex items-center gap-2">
+            <Button variant="ghost" className="flex items-center gap-2 p-2">
               <Avatar>
-                <AvatarImage src={user.avatarUrl} />
+                <AvatarImage src={user.avatarUrl ?? undefined} />
                 <AvatarFallback>{user.username[0].toUpperCase()}</AvatarFallback>
               </Avatar>
               <span>{user.username}</span>
-            </a>
+            </Button>
           </Link>
-          
+
           <Button 
             variant="outline"
             onClick={() => logoutMutation.mutate()}
