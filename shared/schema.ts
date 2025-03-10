@@ -41,8 +41,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const insertMovieSchema = createInsertSchema(movies);
-export const insertRatingSchema = createInsertSchema(ratings);
-export const insertReviewSchema = createInsertSchema(reviews);
+export const insertRatingSchema = createInsertSchema(ratings).omit({ id: true, createdAt: true });
+export const insertReviewSchema = createInsertSchema(reviews).omit({ id: true, createdAt: true });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
