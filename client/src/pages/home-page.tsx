@@ -30,8 +30,8 @@ export default function HomePage() {
   const filteredMovies = movies?.filter(movie => {
     const searchTerm = search.toLowerCase();
     const matchesSearch = 
-      movie.title?.toLowerCase().includes(searchTerm) ||
-      movie.director?.toLowerCase().includes(searchTerm);
+      movie.title.toLowerCase().includes(searchTerm) ||
+      movie.director.toLowerCase().includes(searchTerm);
 
     const matchesYear = !filters.year || movie.year === filters.year;
     const matchesRating = !filters.minRating || (movie.voteAverage ?? 0) >= filters.minRating;
@@ -51,8 +51,11 @@ export default function HomePage() {
     }
   });
 
-  const years = [...new Set(movies?.map(m => m.year))].sort((a, b) => b - a);
-  const genres = [...new Set(movies?.flatMap(m => m.genres.map(g => g.name)))].sort();
+  // Get unique years and genres using Set and Array.from instead of spread operator
+  const years = Array.from(new Set(movies?.map(m => m.year) ?? [])).sort((a, b) => b - a);
+  const genres = Array.from(new Set(
+    movies?.flatMap(m => m.genres.map(g => g.name)) ?? []
+  )).sort();
 
   const clearFilters = () => {
     setFilters({ sort: "newest" });

@@ -16,7 +16,7 @@ export const movies = pgTable("movies", {
   posterUrl: text("poster_url").notNull(),
   year: integer("year").notNull(),
   director: text("director").notNull(),
-  genres: jsonb("genres").notNull(),
+  genres: jsonb("genres").$type<Array<{ id: number; name: string }>>().notNull(),
   trailerUrl: text("trailer_url"),
   voteAverage: integer("vote_average"),
 });
