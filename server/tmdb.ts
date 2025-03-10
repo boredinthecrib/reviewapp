@@ -25,7 +25,17 @@ export async function getGenres() {
 
 export async function getPopularMovies(page = 1) {
   const data = await fetchFromTMDB(`/movie/popular?page=${page}`);
-  return await Promise.all(data.results.map(formatTMDBMovie));
+  const movies = await Promise.all(
+    data.results.map(async (movie: any) => {
+      // Fetch videos for each movie
+      const videos = await fetchFromTMDB(`/movie/${movie.id}/videos`);
+      return {
+        ...movie,
+        videos: videos.results,
+      };
+    })
+  );
+  return movies.map(formatTMDBMovie);
 }
 
 export async function searchMovies(query: string, page = 1) {
@@ -52,22 +62,25 @@ export async function getMovie(id: number) {
   });
 }
 
-async function formatTMDBMovie(movie: any) {
-  const genres = await getGenres();
+function formatTMDBMovie(movie: any) {
+  const trailer = movie.videos?.find((video: any) => 
+    video.type === "Trailer" && video.site === "YouTube"
+  );
 
   return {
     id: movie.id,
     title: movie.title,
     description: movie.overview,
-    posterUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : null,
+    posterUrl: movie.poster_path ? `${TMDB_IMAGE_BASE}${movie.poster_path}` : "/placeholder-poster.jpg",
     year: new Date(movie.release_date).getFullYear(),
     director: movie.director || "Unknown",
     genres: movie.genre_ids 
-      ? movie.genre_ids.map((id: number) => 
-          genres.find((g: any) => g.id === id)
-        ).filter(Boolean)
+      ? movie.genre_ids.map((id: number) => ({
+          id,
+          name: "Loading..." // Genres will be fetched separately
+        }))
       : movie.genres || [],
-    trailerUrl: movie.trailer_key ? `https://www.youtube.com/watch?v=${movie.trailer_key}` : null,
-    voteAverage: Math.round(movie.vote_average * 10),
+    trailerUrl: trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
+    voteAverage: Math.round((movie.vote_average || 0) * 10),
   };
 }
