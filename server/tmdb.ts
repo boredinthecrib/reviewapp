@@ -14,11 +14,11 @@ interface TMDBMovie {
   genres?: { id: number; name: string }[];
   vote_average: number;
   videos?: {
-    results: {
+    results: Array<{
       type: string;
       site: string;
       key: string;
-    }[];
+    }>;
   };
 }
 
@@ -42,7 +42,7 @@ export async function fetchFromTMDB<T>(endpoint: string): Promise<T> {
 }
 
 export async function getGenres() {
-  const data = await fetchFromTMDB<{ genres: { id: number; name: string }[] }>("/genre/movie/list");
+  const data = await fetchFromTMDB<{ genres: Array<{ id: number; name: string }> }>("/genre/movie/list");
   return data.genres;
 }
 
@@ -50,11 +50,19 @@ export async function getPopularMovies(page = 1) {
   const data = await fetchFromTMDB<TMDBResponse<TMDBMovie>>(`/movie/popular?page=${page}`);
   const movies = await Promise.all(
     data.results.map(async (movie) => {
-      const videos = await fetchFromTMDB<{ results: TMDBMovie["videos"]["results"] }>(`/movie/${movie.id}/videos`);
-      return {
-        ...movie,
-        videos: videos.results,
-      };
+      try {
+        const videos = await fetchFromTMDB<{ results: Array<{ type: string; site: string; key: string }> }>(`/movie/${movie.id}/videos`);
+        return {
+          ...movie,
+          videos: videos.results,
+        };
+      } catch (error) {
+        console.error(`Failed to fetch videos for movie ${movie.id}:`, error);
+        return {
+          ...movie,
+          videos: [],
+        };
+      }
     })
   );
   return movies.map(formatTMDBMovie);
@@ -65,27 +73,32 @@ export async function searchMovies(query: string, page = 1) {
   return await Promise.all(data.results.map(formatTMDBMovie));
 }
 
-export async function getMovie(id: number) {
-  const [movie, credits, videos] = await Promise.all([
-    fetchFromTMDB<TMDBMovie>(`/movie/${id}`),
-    fetchFromTMDB<{ crew: { job: string; name: string }[] }>(`/movie/${id}/credits`),
-    fetchFromTMDB<{ results: TMDBMovie["videos"]["results"] }>(`/movie/${id}/videos`),
-  ]);
+export async function getMovie(id: number): Promise<Movie | undefined> {
+  try {
+    const [movie, credits, videos] = await Promise.all([
+      fetchFromTMDB<TMDBMovie>(`/movie/${id}`),
+      fetchFromTMDB<{ crew: Array<{ job: string; name: string }> }>(`/movie/${id}/credits`),
+      fetchFromTMDB<{ results: Array<{ type: string; site: string; key: string }> }>(`/movie/${id}/videos`),
+    ]);
 
-  const director = credits.crew.find((person) => person.job === "Director");
-  const trailer = videos.results?.find((video) => 
-    video.type === "Trailer" && video.site === "YouTube"
-  );
+    const director = credits.crew.find((person) => person.job === "Director");
+    const trailer = videos.results.find((video) => 
+      video.type === "Trailer" && video.site === "YouTube"
+    );
 
-  return formatTMDBMovie({
-    ...movie,
-    director: director?.name || "Unknown",
-    trailer_key: trailer?.key,
-  });
+    return formatTMDBMovie({
+      ...movie,
+      director: director?.name,
+      trailer_key: trailer?.key,
+    });
+  } catch (error) {
+    console.error(`Failed to fetch movie ${id}:`, error);
+    return undefined;
+  }
 }
 
 function formatTMDBMovie(movie: TMDBMovie & { director?: string; trailer_key?: string }): Movie {
-  const trailer = movie.videos?.find((video) => 
+  const trailer = movie.videos?.results?.find((video) => 
     video.type === "Trailer" && video.site === "YouTube"
   );
 

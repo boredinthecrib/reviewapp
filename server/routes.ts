@@ -8,9 +8,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
   app.get("/api/movies", async (req, res) => {
-    const page = parseInt(req.query.page as string) || 1;
-    const movies = await storage.getMovies(page);
-    res.json(movies);
+    try {
+      const movies = await storage.getMovies();
+      res.json(movies);
+    } catch (error) {
+      console.error('Error fetching movies:', error);
+      res.status(500).json({ error: 'Failed to fetch movies' });
+    }
   });
 
   app.get("/api/movies/:id", async (req, res) => {
