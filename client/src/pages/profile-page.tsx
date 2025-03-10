@@ -20,7 +20,7 @@ export default function ProfilePage() {
   });
 
   // Get unique movie IDs from reviews
-  const movieIds = [...new Set(reviews?.map(review => review.movieId) ?? [])];
+  const movieIds = Array.from(new Set(reviews?.map(review => review.movieId) ?? []));
 
   // Fetch movies in parallel with a single query
   const { data: movies = [] } = useQuery<Movie[]>({

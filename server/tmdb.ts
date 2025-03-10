@@ -1,9 +1,32 @@
 import fetch from "node-fetch";
+import { Movie } from "@shared/schema";
 
 const TMDB_BASE_URL = "https://api.themoviedb.org/3";
 const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
-export async function fetchFromTMDB(endpoint: string) {
+interface TMDBMovie {
+  id: number;
+  title: string;
+  overview: string;
+  poster_path: string | null;
+  release_date: string;
+  genre_ids?: number[];
+  genres?: { id: number; name: string }[];
+  vote_average: number;
+  videos?: {
+    results: {
+      type: string;
+      site: string;
+      key: string;
+    }[];
+  };
+}
+
+interface TMDBResponse<T> {
+  results: T[];
+}
+
+export async function fetchFromTMDB<T>(endpoint: string): Promise<T> {
   const response = await fetch(`${TMDB_BASE_URL}${endpoint}`, {
     headers: {
       Authorization: `Bearer ${process.env.TMDB_API_KEY}`,
@@ -15,20 +38,19 @@ export async function fetchFromTMDB(endpoint: string) {
     throw new Error(`TMDB API error: ${response.status} ${response.statusText}`);
   }
 
-  return await response.json();
+  return await response.json() as T;
 }
 
 export async function getGenres() {
-  const data = await fetchFromTMDB("/genre/movie/list");
+  const data = await fetchFromTMDB<{ genres: { id: number; name: string }[] }>("/genre/movie/list");
   return data.genres;
 }
 
 export async function getPopularMovies(page = 1) {
-  const data = await fetchFromTMDB(`/movie/popular?page=${page}`);
+  const data = await fetchFromTMDB<TMDBResponse<TMDBMovie>>(`/movie/popular?page=${page}`);
   const movies = await Promise.all(
-    data.results.map(async (movie: any) => {
-      // Fetch videos for each movie
-      const videos = await fetchFromTMDB(`/movie/${movie.id}/videos`);
+    data.results.map(async (movie) => {
+      const videos = await fetchFromTMDB<{ results: TMDBMovie["videos"]["results"] }>(`/movie/${movie.id}/videos`);
       return {
         ...movie,
         videos: videos.results,
@@ -39,19 +61,19 @@ export async function getPopularMovies(page = 1) {
 }
 
 export async function searchMovies(query: string, page = 1) {
-  const data = await fetchFromTMDB(`/search/movie?query=${encodeURIComponent(query)}&page=${page}`);
+  const data = await fetchFromTMDB<TMDBResponse<TMDBMovie>>(`/search/movie?query=${encodeURIComponent(query)}&page=${page}`);
   return await Promise.all(data.results.map(formatTMDBMovie));
 }
 
 export async function getMovie(id: number) {
   const [movie, credits, videos] = await Promise.all([
-    fetchFromTMDB(`/movie/${id}`),
-    fetchFromTMDB(`/movie/${id}/credits`),
-    fetchFromTMDB(`/movie/${id}/videos`),
+    fetchFromTMDB<TMDBMovie>(`/movie/${id}`),
+    fetchFromTMDB<{ crew: { job: string; name: string }[] }>(`/movie/${id}/credits`),
+    fetchFromTMDB<{ results: TMDBMovie["videos"]["results"] }>(`/movie/${id}/videos`),
   ]);
 
-  const director = credits.crew.find((person: any) => person.job === "Director");
-  const trailer = videos.results?.find((video: any) => 
+  const director = credits.crew.find((person) => person.job === "Director");
+  const trailer = videos.results?.find((video) => 
     video.type === "Trailer" && video.site === "YouTube"
   );
 
@@ -62,8 +84,8 @@ export async function getMovie(id: number) {
   });
 }
 
-function formatTMDBMovie(movie: any) {
-  const trailer = movie.videos?.find((video: any) => 
+function formatTMDBMovie(movie: TMDBMovie & { director?: string; trailer_key?: string }): Movie {
+  const trailer = movie.videos?.find((video) => 
     video.type === "Trailer" && video.site === "YouTube"
   );
 
@@ -75,12 +97,12 @@ function formatTMDBMovie(movie: any) {
     year: new Date(movie.release_date).getFullYear(),
     director: movie.director || "Unknown",
     genres: movie.genre_ids 
-      ? movie.genre_ids.map((id: number) => ({
+      ? movie.genre_ids.map((id) => ({
           id,
           name: "Loading..." // Genres will be fetched separately
         }))
       : movie.genres || [],
-    trailerUrl: trailer?.key ? `https://www.youtube.com/watch?v=${trailer.key}` : null,
+    trailerUrl: (trailer?.key || movie.trailer_key) ? `https://www.youtube.com/watch?v=${trailer?.key || movie.trailer_key}` : null,
     voteAverage: Math.round((movie.vote_average || 0) * 10),
   };
 }

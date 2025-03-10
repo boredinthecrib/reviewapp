@@ -33,11 +33,13 @@ export default function HomePage() {
     isLoading,
   } = useInfiniteQuery({
     queryKey: ["/api/movies"],
-    queryFn: async ({ pageParam = 1 }) => {
+    initialPageParam: 1,
+    queryFn: async ({ pageParam }) => {
       const res = await fetch(`/api/movies?page=${pageParam}`);
-      return res.json();
+      const data: Movie[] = await res.json();
+      return data;
     },
-    getNextPageParam: (lastPage, allPages) => {
+    getNextPageParam: (lastPage: Movie[], allPages: Movie[][]) => {
       return lastPage.length === 20 ? allPages.length + 1 : undefined;
     },
   });
@@ -61,7 +63,7 @@ export default function HomePage() {
 
   const movies = data?.pages.flat() ?? [];
 
-  const filteredMovies = movies.filter(movie => {
+  const filteredMovies = movies.filter((movie: Movie) => {
     const searchTerm = search.toLowerCase();
     const matchesSearch = 
       movie.title.toLowerCase().includes(searchTerm) ||
@@ -72,7 +74,7 @@ export default function HomePage() {
     const matchesGenre = !filters.genre || movie.genres.some(g => g.name === filters.genre);
 
     return matchesSearch && matchesYear && matchesRating && matchesGenre;
-  }).sort((a, b) => {
+  }).sort((a: Movie, b: Movie) => {
     switch (filters.sort) {
       case "newest":
         return b.year - a.year;
@@ -85,9 +87,9 @@ export default function HomePage() {
     }
   });
 
-  const years = Array.from(new Set(movies?.map(m => m.year) ?? [])).sort((a, b) => b - a);
+  const years = Array.from(new Set(movies.map((m: Movie) => m.year))).sort((a, b) => b - a);
   const genres = Array.from(new Set(
-    movies?.flatMap(m => m.genres.map(g => g.name)) ?? []
+    movies.flatMap((m: Movie) => m.genres.map(g => g.name))
   )).sort();
 
   const clearFilters = () => {
