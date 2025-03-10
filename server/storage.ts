@@ -1,37 +1,26 @@
 import session from "express-session";
 import createMemoryStore from "memorystore";
-import { User, InsertUser, Movie, Rating, Review, InsertRating, InsertReview } from "@shared/schema";
+import { User, InsertUser, Movie, Rating, Review } from "@shared/schema";
+import { getPopularMovies, getMovie } from "./tmdb";
 
 const MemoryStore = createMemoryStore(session);
-
-const MOCK_MOVIES: Movie[] = [
-  {
-    id: 1,
-    title: "The Dark Night",
-    description: "When the menace known as the Joker wreaks havoc and chaos on the people of Gotham, Batman must accept one of the greatest psychological and physical tests of his ability to fight injustice.",
-    posterUrl: "https://images.unsplash.com/photo-1626814026160-2237a95fc5a0",
-    year: 2008,
-    director: "Christopher Nolan",
-  },
-  // Add more mock movies using the provided stock photos
-];
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  
+
   getMovies(): Promise<Movie[]>;
   getMovie(id: number): Promise<Movie | undefined>;
-  
+
   getRatings(movieId: number): Promise<Rating[]>;
   getUserRating(userId: number, movieId: number): Promise<Rating | undefined>;
-  createRating(rating: InsertRating): Promise<Rating>;
-  
+  createRating(rating: Rating): Promise<Rating>;
+
   getReviews(movieId: number): Promise<Review[]>;
   getUserReviews(userId: number): Promise<Review[]>;
-  createReview(review: InsertReview): Promise<Review>;
-  
+  createReview(review: Review): Promise<Review>;
+
   sessionStore: session.Store;
 }
 
@@ -70,11 +59,16 @@ export class MemStorage implements IStorage {
   }
 
   async getMovies(): Promise<Movie[]> {
-    return MOCK_MOVIES;
+    return await getPopularMovies();
   }
 
   async getMovie(id: number): Promise<Movie | undefined> {
-    return MOCK_MOVIES.find(movie => movie.id === id);
+    try {
+      return await getMovie(id);
+    } catch (error) {
+      console.error("Error fetching movie:", error);
+      return undefined;
+    }
   }
 
   async getRatings(movieId: number): Promise<Rating[]> {
@@ -89,7 +83,7 @@ export class MemStorage implements IStorage {
     );
   }
 
-  async createRating(rating: InsertRating): Promise<Rating> {
+  async createRating(rating: Rating): Promise<Rating> {
     const id = this.currentId++;
     const newRating: Rating = { ...rating, id, createdAt: new Date() };
     this.ratings.set(id, newRating);
@@ -99,16 +93,16 @@ export class MemStorage implements IStorage {
   async getReviews(movieId: number): Promise<Review[]> {
     return Array.from(this.reviews.values())
       .filter((review) => review.movieId === movieId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
   }
 
   async getUserReviews(userId: number): Promise<Review[]> {
     return Array.from(this.reviews.values())
       .filter((review) => review.userId === userId)
-      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+      .sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
   }
 
-  async createReview(review: InsertReview): Promise<Review> {
+  async createReview(review: Review): Promise<Review> {
     const id = this.currentId++;
     const newReview: Review = { ...review, id, createdAt: new Date() };
     this.reviews.set(id, newReview);
