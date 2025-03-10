@@ -7,15 +7,18 @@ import { Loader2 } from "lucide-react";
 
 export default function HomePage() {
   const [search, setSearch] = useState("");
-  
+
   const { data: movies, isLoading } = useQuery<Movie[]>({
     queryKey: ["/api/movies"],
   });
 
-  const filteredMovies = movies?.filter(movie => 
-    movie.title.toLowerCase().includes(search.toLowerCase()) ||
-    movie.director.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredMovies = movies?.filter(movie => {
+    const searchTerm = search.toLowerCase();
+    return (
+      movie.title?.toLowerCase().includes(searchTerm) ||
+      movie.director?.toLowerCase().includes(searchTerm)
+    );
+  });
 
   return (
     <div className="space-y-8">
@@ -34,9 +37,13 @@ export default function HomePage() {
         <div className="flex justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
+      ) : !filteredMovies?.length ? (
+        <div className="text-center text-muted-foreground">
+          No movies found matching your search.
+        </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {filteredMovies?.map((movie) => (
+          {filteredMovies.map((movie) => (
             <MovieCard key={movie.id} movie={movie} />
           ))}
         </div>
