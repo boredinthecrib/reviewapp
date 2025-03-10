@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { Movie } from "@shared/schema";
 import MovieCard from "@/components/movie-card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Loader2, FilterX } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
@@ -23,11 +23,45 @@ export default function HomePage() {
     sort: "newest",
   });
 
-  const { data: movies, isLoading } = useQuery<Movie[]>({
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+  } = useInfiniteQuery({
     queryKey: ["/api/movies"],
+    queryFn: async ({ pageParam = 1 }) => {
+      const res = await fetch(`/api/movies?page=${pageParam}`);
+      return res.json();
+    },
+    getNextPageParam: (lastPage, allPages) => {
+      return lastPage.length === 20 ? allPages.length + 1 : undefined;
+    },
   });
 
-  const filteredMovies = movies?.filter(movie => {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasNextPage && !isFetchingNextPage) {
+          fetchNextPage();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+
+  const movies = data?.pages.flat() ?? [];
+
+  const filteredMovies = movies.filter(movie => {
     const searchTerm = search.toLowerCase();
     const matchesSearch = 
       movie.title.toLowerCase().includes(searchTerm) ||
@@ -51,7 +85,6 @@ export default function HomePage() {
     }
   });
 
-  // Get unique years and genres using Set and Array.from instead of spread operator
   const years = Array.from(new Set(movies?.map(m => m.year) ?? [])).sort((a, b) => b - a);
   const genres = Array.from(new Set(
     movies?.flatMap(m => m.genres.map(g => g.name)) ?? []
@@ -161,19 +194,38 @@ export default function HomePage() {
       </div>
 
       {isLoading ? (
-        <div className="flex justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="bg-muted rounded-lg aspect-[2/3]" />
+              <div className="space-y-2 mt-4">
+                <div className="h-4 bg-muted rounded w-3/4" />
+                <div className="h-4 bg-muted rounded w-1/2" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : !filteredMovies?.length ? (
         <div className="text-center text-muted-foreground">
           No movies found matching your search.
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-          {filteredMovies.map((movie) => (
-            <MovieCard key={movie.id} movie={movie} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+            {filteredMovies.map((movie) => (
+              <MovieCard key={movie.id} movie={movie} />
+            ))}
+          </div>
+
+          <div 
+            ref={loadMoreRef} 
+            className="py-8 flex justify-center"
+          >
+            {isFetchingNextPage && (
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            )}
+          </div>
+        </>
       )}
     </div>
   );

@@ -7,8 +7,9 @@ import { insertRatingSchema, insertReviewSchema } from "@shared/schema";
 export async function registerRoutes(app: Express): Promise<Server> {
   setupAuth(app);
 
-  app.get("/api/movies", async (_req, res) => {
-    const movies = await storage.getMovies();
+  app.get("/api/movies", async (req, res) => {
+    const page = parseInt(req.query.page as string) || 1;
+    const movies = await storage.getMovies(page);
     res.json(movies);
   });
 
