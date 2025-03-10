@@ -3,6 +3,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { ThemeToggle } from "./theme-toggle";
+import { Bookmark } from "lucide-react";
 
 export default function NavBar() {
   const { user, logoutMutation } = useAuth();
@@ -18,6 +19,12 @@ export default function NavBar() {
 
         <div className="flex items-center gap-4">
           <ThemeToggle />
+          <Link href="/watchlist">
+            <Button variant="ghost" className="flex items-center gap-2">
+              <Bookmark className="h-4 w-4" />
+              <span>Watchlist</span>
+            </Button>
+          </Link>
           <Link href={`/profile/${user.id}`}>
             <Button variant="ghost" className="flex items-center gap-2 p-2">
               <Avatar>

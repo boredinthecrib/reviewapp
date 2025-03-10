@@ -4,6 +4,7 @@ import { Movie } from "@shared/schema";
 import { Link } from "wouter";
 import { useState, useCallback } from "react";
 import { Play } from "lucide-react";
+import WatchlistButton from "./watchlist-button";
 
 interface MovieCardProps {
   movie: Movie;
@@ -36,6 +37,7 @@ export default function MovieCard({ movie }: MovieCardProps) {
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
+          <WatchlistButton movieId={movie.id} />
           <AspectRatio ratio={2/3} className="relative bg-black">
             <img 
               src={movie.posterUrl} 

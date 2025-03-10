@@ -1,10 +1,10 @@
 import session from "express-session";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
-import { users, movies, ratings, reviews } from "@shared/schema";
-import { User, InsertUser, Movie, Rating, Review } from "@shared/schema";
+import { users, movies, ratings, reviews, watchlist } from "@shared/schema";
+import { User, InsertUser, Movie, Rating, Review, Watchlist } from "@shared/schema";
 import { getPopularMovies, getMovie } from "./tmdb";
 
 const PostgresSessionStore = connectPg(session);
@@ -24,6 +24,11 @@ export interface IStorage {
   getReviews(movieId: number): Promise<Review[]>;
   getUserReviews(userId: number): Promise<Review[]>;
   createReview(review: { userId: number; movieId: number; content: string }): Promise<Review>;
+
+  getUserWatchlist(userId: number): Promise<Watchlist[]>;
+  isInWatchlist(userId: number, movieId: number): Promise<boolean>;
+  addToWatchlist(userId: number, movieId: number): Promise<Watchlist>;
+  removeFromWatchlist(userId: number, movieId: number): Promise<void>;
 
   sessionStore: session.Store;
 }
@@ -108,6 +113,46 @@ export class DatabaseStorage implements IStorage {
       .values(review)
       .returning();
     return newReview;
+  }
+
+  async getUserWatchlist(userId: number): Promise<Watchlist[]> {
+    return await db
+      .select()
+      .from(watchlist)
+      .where(eq(watchlist.userId, userId))
+      .orderBy(desc(watchlist.addedAt));
+  }
+
+  async isInWatchlist(userId: number, movieId: number): Promise<boolean> {
+    const [item] = await db
+      .select()
+      .from(watchlist)
+      .where(
+        and(
+          eq(watchlist.userId, userId),
+          eq(watchlist.movieId, movieId)
+        )
+      );
+    return !!item;
+  }
+
+  async addToWatchlist(userId: number, movieId: number): Promise<Watchlist> {
+    const [item] = await db
+      .insert(watchlist)
+      .values({ userId, movieId })
+      .returning();
+    return item;
+  }
+
+  async removeFromWatchlist(userId: number, movieId: number): Promise<void> {
+    await db
+      .delete(watchlist)
+      .where(
+        and(
+          eq(watchlist.userId, userId),
+          eq(watchlist.movieId, movieId)
+        )
+      );
   }
 }
 

@@ -11,6 +11,7 @@ import MoviePage from "@/pages/movie-page";
 import ProfilePage from "@/pages/profile-page";
 import { ProtectedRoute } from "./lib/protected-route";
 import NavBar from "./components/nav-bar";
+import WatchlistPage from "@/pages/watchlist-page";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
       <ProtectedRoute path="/" component={HomePage} />
       <ProtectedRoute path="/movies/:id" component={MoviePage} />
       <ProtectedRoute path="/profile/:id" component={ProfilePage} />
+      <ProtectedRoute path="/watchlist" component={WatchlistPage} />
       <Route component={NotFound} />
     </Switch>
   );

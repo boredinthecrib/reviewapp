@@ -76,6 +76,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(reviews);
   });
 
+  app.get("/api/users/:id/watchlist", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const watchlist = await storage.getUserWatchlist(parseInt(req.params.id));
+    res.json(watchlist);
+  });
+
+  app.post("/api/movies/:id/watchlist", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const movieId = parseInt(req.params.id);
+    const userId = req.user!.id;
+
+    const exists = await storage.isInWatchlist(userId, movieId);
+    if (exists) {
+      await storage.removeFromWatchlist(userId, movieId);
+      res.sendStatus(204);
+    } else {
+      const item = await storage.addToWatchlist(userId, movieId);
+      res.status(201).json(item);
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
