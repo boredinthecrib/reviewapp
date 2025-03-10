@@ -79,13 +79,16 @@ export default function HomePage() {
           <label className="text-sm font-medium">Year</label>
           <Select
             value={filters.year?.toString()}
-            onValueChange={(value) => setFilters(f => ({ ...f, year: parseInt(value) }))}
+            onValueChange={(value) => setFilters(f => ({ 
+              ...f, 
+              year: value ? parseInt(value) : undefined 
+            }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="All years" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All years</SelectItem>
+              <SelectItem value="all">All years</SelectItem>
               {years.map(year => (
                 <SelectItem key={year} value={year.toString()}>
                   {year}
@@ -98,14 +101,17 @@ export default function HomePage() {
         <div className="space-y-2 min-w-[200px]">
           <label className="text-sm font-medium">Genre</label>
           <Select
-            value={filters.genre}
-            onValueChange={(value) => setFilters(f => ({ ...f, genre: value }))}
+            value={filters.genre || "all"}
+            onValueChange={(value) => setFilters(f => ({ 
+              ...f, 
+              genre: value === "all" ? undefined : value 
+            }))}
           >
             <SelectTrigger>
               <SelectValue placeholder="All genres" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All genres</SelectItem>
+              <SelectItem value="all">All genres</SelectItem>
               {genres.map(genre => (
                 <SelectItem key={genre} value={genre}>
                   {genre}
