@@ -8,8 +8,8 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: postgresql://moviedb_owner:${PGPASSWORD}@ep-falling-resonance-a8as11g6-pooler.eastus2.azure.neon.tech/moviedb?sslmode=require
+        value: postgresql://moviedb_owner:npg_r1GlHutKIwJ2@ep-falling-resonance-a8as11g6-pooler.eastus2.azure.neon.tech/moviedb?sslmode=require
       - key: SESSION_SECRET
         sync: false
       - key: TMDB_API_KEY
-        sync: false
+        sync: falseß
