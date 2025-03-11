@@ -20,5 +20,5 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps --no-audit --prefer-offline"
-  VITE_API_URL = "${API_URL}"
+  VITE_API_URL = "https://b35bfcd1-d772-4753-aea3-02ad5a9d6b36-00-35ukmeevuua7u.spock.replit.dev"
   VITE_TMDB_API_KEY = "${TMDB_API_KEY}"
