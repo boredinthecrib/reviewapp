@@ -19,3 +19,5 @@
 [build.environment]
   NODE_VERSION = "20"
   NPM_FLAGS = "--legacy-peer-deps --no-audit --prefer-offline"
+  VITE_API_URL = "${API_URL}"
+  VITE_TMDB_API_KEY = "${TMDB_API_KEY}"
